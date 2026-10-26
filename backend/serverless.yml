@@ -1,0 +1,20 @@
+service: festival-control-api
+ 
+# Conservamos la línea del Framework preparada para la práctica.
+frameworkVersion: ~4.45.0
+ 
+provider:
+  name: aws
+  runtime: nodejs22.x
+ 
+plugins:
+  - serverless-offline
+ 
+functions:
+  hello:
+    # Ejecuta dist/hello.js, generado desde src/hello.ts.
+    handler: dist/hello.handler
+    events:
+      - http:
+          path: hello
+          method: get
