@@ -95,3 +95,53 @@ Comprobando el limite:
 ![alt text](imagenes/03/image-3.png)
 
 - Limitaciones del ejercicio: el 201 es una respuesta didáctica. El id EVT-NEW es fijo y no se guarda nada, así que un GET posterior no recupera lo enviado por POST (GET /events/EVT-NEW devuelve la ficha fija de Neon Waves). No hay base de datos ni persistencia, y todo se ha probado en local, sin desplegar en AWS.
+
+
+
+# Bloque 04
+ 
+## Resultado
+- Qué añadí al proyecto: Un contrato HTTP completo sobre /events y /events/{id} con cinco métodos. Creé src/events/model.ts (tipos, catálogo fijo, json(), readBody() e isEventInput()), los handlers list.ts, get.ts, create.ts, replace.ts, update.ts y delete.ts, y actualicé serverless.yml para enlazar cada método con dist/events/*.handler manteniendo hello y las rutas acumuladas.
+
+- Ruta o pantalla comprobada: Probé los cinco métodos con curl -i contra http://localhost:3000/dev/events y http://localhost:3000/dev/events/{id}. También verifiqué el preflight OPTIONS con cabeceras Origin, Access-Control-Request-Method y Access-Control-Request-Headers.
+
+- Estado y respuesta observados: GET /events → 200 con los dos eventos (EVT-101, EVT-102); GET /events/EVT-101 → 200 con el evento; GET /events/NO-EXISTE → 404. POST → 201 con EVT-NEW; PUT /events/EVT-101 → 200 con operation: "REPLACED"; PATCH de status → 200 con changes.status: "CANCELLED" y operation: "UPDATED"; DELETE /events/EVT-102 → 200 con operation: "DELETED". OPTIONS respondió 2xx permitiendo el origen y POST, y los GET incluyeron Access-Control-Allow-Origin: *.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: El cliente HTTP envía método y ruta; API Gateway (Offline) los enruta al handler correspondiente de dist/events; el handler lee pathParameters o body, valida con readBody() e isEventInput() y responde con json(estado, valor). El catálogo catalog es fijo y nunca se muta, así que las escrituras solo devuelven un contrato simulado.
+
+- Cambio guiado y resultado: Envié solo {"status":"CANCELLED"} por PUT a EVT-101 → 400 (PUT exige el objeto completo). El mismo body por PATCH → 200 con operation: "UPDATED". Un GET posterior a EVT-101 devolvió 200 con status: "CONFIRMED", confirmando que no hay persistencia.
+
+- Error encontrado y cómo lo resolví: Al principio un PUT con body parcial devolvía 400 y me confundió; revisé isEventInput() en model.ts y entendí que valida todos los campos (artist, space, time HH:mm y status). Ajusté el body al objeto completo y obtuve 200. También comprobé que las rutas ausentes en el log de Offline se debían a un YAML sin guardar; reinicié tras guardar.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+GET lista y detalle:
+
+![alt text](imagenes/04/image.png)
+![alt text](imagenes/04/image-1.png)
+![alt text](imagenes/04/image-2.png)
+
+POST y PUT:
+
+![alt text](imagenes/04/image-3.png)
+![alt text](imagenes/04/image-4.png)
+
+PATCH y DELETE:
+
+![alt text](imagenes/04/image-5.png)
+![alt text](imagenes/04/image-6.png)
+
+Errores y ausencia de persistencia:
+
+![alt text](imagenes/04/image-7.png)
+![alt text](imagenes/04/image-8.png)
+![alt text](imagenes/04/image-9.png)
+
+Preflight para el navegador:
+
+![alt text](imagenes/04/image-10.png)
+
+- Limitaciones del ejercicio: os dos eventos son datos fijos; POST, PUT, PATCH y DELETE solo responden y no modifican catalog. Un GET posterior conserva la lista original. No hay almacenamiento ni persistencia real; el PATCH acepta únicamente status con valores CONFIRMED o CANCELLED, y PUT exige el objeto completo.
+ 
