@@ -18,3 +18,12 @@ functions:
       - http:
           path: hello
           method: get
+          cors: true
+
+  getEvent:
+    handler: dist/getEvent.handler
+    events:
+      - http:
+          path: events/{id}
+          method: get
+          cors: true
