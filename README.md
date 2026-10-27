@@ -54,3 +54,44 @@ Evidencia: [adjunto captura propia del curl y su log]
 En la terminal del backend también debería aparecer GET evento: EVT-104. Sustituir esta evidencia esperada por la salida real obtenida al ejecutar la prueba.
 
 - Limitaciones del ejercicio: Los datos del evento son simulados y están escritos directamente en el handler. Cualquier identificador no vacío devuelve los mismos datos, cambiando el campo id. Todavía no hay una búsqueda en un catálogo, una base de datos ni persistencia de eventos. El ejercicio se centra en comprender los parámetros de ruta y la respuesta HTTP.
+
+
+
+# Bloque 03
+ 
+## Resultado
+
+- Qué añadí al proyecto: backend/src/createEvent.ts, un handler TypeScript que lee el body de un POST, lo valida y responde, y la función createEvent en serverless.yml (POST /events, con cors: true).
+
+- Ruta o pantalla comprobada: POST http://localhost:3000/dev/events.
+
+- Estado y respuesta observados: con un body válido, 201 y un JSON con id: "EVT-NEW" y los campos enviados (artist, space, time, status). Con un campo ausente, un JSON roto o valores inválidos, 400 con un mensaje explicativo.
+ 
+## Comprensión
+
+- Recorrido del dato, explicado con mis palabras: el cliente envía un objeto JSON en el body del POST. El handler lo recibe como texto en event.body, lo convierte con JSON.parse dentro de un try/catch (si la sintaxis es incorrecta, responde 400) y lo trata como unknown, porque la red puede traer cualquier cosa. Comprueba que sea un objeto, que artist y space sean textos no vacíos, que time tenga formato HH:mm y que status sea CONFIRMED o CANCELLED. Si todo es correcto, devuelve 201; si no, 400. TypeScript revisa mi código al compilar, pero la validación revisa los datos reales durante la ejecución, así que hacen falta las dos.
+
+- Cambio guiado y resultado: repetí el POST válido con status: "CANCELLED" y obtuve 201. Después probé status: "PAUSED" y time: "29:80" en peticiones separadas y ambas devolvieron 400.
+
+- Error encontrado y cómo lo resolví: [escribe aquí un error real que tuviste, por ejemplo un 404 por una URL mal escrita o un error de indentación en el YAML, y cómo lo solucionaste. Si no tuviste ninguno, indícalo.]
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+POST valido:
+
+![alt text](imagenes/03/image.png)
+
+Campo ausente:
+
+![alt text](imagenes/03/image-1.png)
+
+JSON roto:
+
+![alt text](imagenes/03/image-2.png)
+
+Comprobando el limite:
+
+![alt text](imagenes/03/image-3.png)
+
+- Limitaciones del ejercicio: el 201 es una respuesta didáctica. El id EVT-NEW es fijo y no se guarda nada, así que un GET posterior no recupera lo enviado por POST (GET /events/EVT-NEW devuelve la ficha fija de Neon Waves). No hay base de datos ni persistencia, y todo se ha probado en local, sin desplegar en AWS.

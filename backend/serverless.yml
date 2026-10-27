@@ -27,3 +27,11 @@ functions:
           path: events/{id}
           method: get
           cors: true
+
+  createEvent:
+    handler: dist/createEvent.handler
+    events:
+      - http:
+          path: events
+          method: post
+          cors: true
