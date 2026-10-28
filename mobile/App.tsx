@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import type { FestivalEvent } from './src/types';
-import { getEvents } from './src/api';
+import { getEvents, createEvent, replaceEvent, updateEvent, deleteEvent } from './src/api';
  
 export default function App() {
   const [events, setEvents] = useState<FestivalEvent[]>([]);
@@ -16,6 +16,24 @@ export default function App() {
     finally { setLoading(false); }
   }
   useEffect(() => { void loadEvents(); }, []);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState('');
+  async function run(label: string, task: () => Promise<unknown>) {
+    setBusy(true); setError(''); setResult('');
+    try {
+      const response = await task();
+      setResult(label + '\n' + JSON.stringify(response, null, 2));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Error de red');
+    } finally { setBusy(false); }
+  }
+  const input = { artist: 'Nova Pulse', space: 'Main Stage', time: '21:00', status: 'CONFIRMED' as const };
+  const actions: [string, () => Promise<unknown>][] = [
+    ['POST crear', () => createEvent(input)],
+    ['PUT reemplazar EVT-101', () => replaceEvent('EVT-101', input)],
+    ['PATCH cancelar EVT-101', () => updateEvent('EVT-101', 'CANCELLED')],
+    ['DELETE EVT-102', () => deleteEvent('EVT-102')]
+  ];
   return (
     <View style={styles.page}>
       <StatusBar style="light" />
@@ -30,10 +48,18 @@ export default function App() {
             <Text style={styles.text}>{item.space} · {item.time}</Text>
           </View>
         ))}
-        <Pressable accessibilityRole="button" disabled={loading} style={styles.button} onPress={() => void loadEvents()}>
+        <Pressable accessibilityRole="button" disabled={loading || busy} style={styles.button} onPress={() => void loadEvents()}>
           <Text style={styles.buttonText}>{loading ? 'Cargando…' : 'GET recargar'}</Text>
         </Pressable>
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+        <Text style={styles.text}>Escrituras simuladas: el resultado se muestra debajo; la lista conserva sus dos eventos.</Text>
+        {actions.map(([label, task]) => (
+          <Pressable key={label} accessibilityRole="button" disabled={busy || loading} style={styles.button} onPress={() => void run(label, task)}>
+            <Text style={styles.buttonText}>{label}</Text>
+          </Pressable>
+        ))}
+        {busy ? <Text style={styles.text}>Enviando…</Text> : null}
+        <Text accessibilityLiveRegion="polite" style={styles.result}>{result}</Text>
       </ScrollView>
     </View>
   );

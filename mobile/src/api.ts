@@ -1,4 +1,4 @@
-import type { FestivalEvent } from './types';
+import type { FestivalEvent, EventInput, EventStatus } from './types';
  
 // URL base sin /events al final. Sustituye sólo este valor en el bloque 09.
 export const API_URL = 'http://localhost:3000/dev';
@@ -31,4 +31,9 @@ export async function getEvents(): Promise<FestivalEvent[]> {
   if (!Array.isArray(value) || !value.every(isFestivalEvent)) throw new Error('La API no devolvió una lista de actuaciones válida');
   return value;
 }
+ 
+export const createEvent = (input: EventInput) => request('/events', 'POST', input);
+export const replaceEvent = (id: string, input: EventInput) => request('/events/' + encodeURIComponent(id), 'PUT', input);
+export const updateEvent = (id: string, status: EventStatus) => request('/events/' + encodeURIComponent(id), 'PATCH', { status });
+export const deleteEvent = (id: string) => request('/events/' + encodeURIComponent(id), 'DELETE');
  

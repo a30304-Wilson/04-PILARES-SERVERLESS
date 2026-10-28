@@ -195,3 +195,32 @@ Preflight para el navegador:
 ![alt text](imagenes/06/image-1.png)
 
 - Limitaciones del ejercicio: La vía de aula es navegador y backend en el mismo PC; localhost sirve aquí, pero en un teléfono identificaría al teléfono, no al ordenador, y haría falta la URL LAN del PC y red permitida. El backend del bloque 04 es simulado: las escrituras no persisten, así que en este bloque solo se consume el GET y la lista sigue siendo el catálogo fijo. La app no incluye aún las cuatro escrituras ni el despliegue en AWS; eso corresponde a los bloques 07 y 08.
+
+
+
+# Bloque 07
+ 
+## Resultado
+- Qué añadí al proyecto: Amplié mobile/src/api.ts con los helpers createEvent(input: EventInput), replaceEvent(id, input), updateEvent(id, status) y deleteEvent(id), todos construidos sobre el mismo request() que ya usaba getEvents(), con encodeURIComponent para los ids en la URL. Actualicé mobile/App.tsx para añadir cuatro botones (POST crear, PUT reemplazar EVT-101, PATCH cancelar EVT-101, DELETE EVT-102) que pasan una tarea a run(label, task), con estados busy y result, bloqueo de botones durante el envío y visualización del JSON devuelto. No toqué el backend ni el catálogo del bloque 04.
+
+- Ruta o pantalla comprobada: Con el backend de 04 activo en http://localhost:3000/dev, abrí la app con npm run web desde mobile y pulsé uno a uno los cuatro botones, esperando el resultado entre clics. Verifiqué cada petición en F12 → Network: POST /dev/events, PUT /dev/events/EVT-101, PATCH /dev/events/EVT-101 y DELETE /dev/events/EVT-102. Después pulsé «GET recargar» y comparé con el estado anterior.
+
+- Estado y respuesta observados: POST → 201 con EVT-NEW; PUT → 200 con operation: "REPLACED"; PATCH → 200 con changes.status: "CANCELLED" y operation: "UPDATED"; DELETE → 200 con operation: "DELETED". Cada respuesta JSON apareció en pantalla bajo los botones. Tras pulsar «GET recargar», la lista conservó las dos actuaciones (EVT-101 y EVT-102) con status: "CONFIRMED": el DELETE no eliminó la tarjeta. Durante cada envío, los botones mostraron «Enviando…» y se deshabilitaron con disabled={busy || loading}.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: Cada Pressable tiene onPress={() => void run(label, task)}. run activa busy, limpia error y result, y ejecuta task. La task es una función de api.ts que llama a request(path, method, body); request construye la URL con API_URL + path, añade Content-Type: application/json y JSON.stringify(body) solo si hay body, hace fetch, lee el JSON y, si response.ok es falso, lanza un Error con el mensaje devuelto. Si todo va bien, run guarda label + '\n' + JSON.stringify(response, null, 2) en result y React lo muestra. finally libera busy para permitir la siguiente acción. El componente nunca modifica events a partir de una escritura: solo muestra el resultado real del servidor simulado.
+
+- Cambio guiado y resultado: En la acción PATCH cambié CANCELLED por CONFIRMED. Al pulsar, en Network vi PATCH /dev/events/EVT-101 con Request Payload {"status":"CONFIRMED"}, estado 200 y cuerpo con changes.status: "CONFIRMED" y operation: "UPDATED". Después restauré CANCELLED para conservar el hito base. El método siguió siendo PATCH y el body un único campo status, como exige el contrato.
+
+- Error encontrado y cómo lo resolví: Al principio el botón PUT devolvía 400 porque, al construir el input compartido, había olvidado incluir status en el objeto enviado a replaceEvent. Revisé el contrato del bloque 04 y vi que PUT exige el objeto completo (artist, space, time HH:mm y status), mientras que PATCH solo admite status. Corregí el input para incluir status: 'CONFIRMED' as const y el PUT volvió a 200 con REPLACED. También verifiqué que cors: true y el helper json() estaban presentes en las respuestas de error, porque sin ellos el navegador bloquea la lectura por CORS en las escrituras.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+![alt text](imagenes/07/image.png)
+![alt text](imagenes/07/image-1.png)
+![alt text](imagenes/07/image-2.png)
+![alt text](imagenes/07/image-3.png)
+
+- Limitaciones del ejercicio: El backend del bloque 04 es simulado: las escrituras devuelven un contrato pero no persisten, así que tras DELETE la lista sigue mostrando EVT-102 y tras PATCH el GET conserva CONFIRMED. No hay actualización optimista en el cliente porque simularía un guardado inexistente. La vía de aula es navegador y backend en el mismo PC; en un teléfono localhost identificaría al teléfono, no al ordenador, y haría falta la URL LAN del PC y red permitida. El despliegue real en AWS corresponde al bloque 08.
+ 
