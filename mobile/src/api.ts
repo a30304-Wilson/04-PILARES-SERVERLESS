@@ -1,7 +1,7 @@
 import type { FestivalEvent, EventInput, EventStatus } from './types';
  
 // URL base sin /events al final. Sustituye sólo este valor en el bloque 09.
-export const API_URL = 'http://localhost:3000/dev';
+export const API_URL = 'https://th6c25a0pk.execute-api.us-east-1.amazonaws.com/dev';
  
 async function request(path: string, method = 'GET', body?: unknown): Promise<unknown> {
   const response = await fetch(API_URL + path, {

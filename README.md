@@ -223,4 +223,66 @@ Preflight para el navegador:
 ![alt text](imagenes/07/image-3.png)
 
 - Limitaciones del ejercicio: El backend del bloque 04 es simulado: las escrituras devuelven un contrato pero no persisten, así que tras DELETE la lista sigue mostrando EVT-102 y tras PATCH el GET conserva CONFIRMED. No hay actualización optimista en el cliente porque simularía un guardado inexistente. La vía de aula es navegador y backend en el mismo PC; en un teléfono localhost identificaría al teléfono, no al ordenador, y haría falta la URL LAN del PC y red permitida. El despliegue real en AWS corresponde al bloque 08.
+
+
+
+# Bloque 08
+ 
+## Resultado
+- Qué añadí al proyecto: Sustituí backend/serverless.yml por la versión de despliegue: el servicio pasa a festival-control-api-${env:STUDENT_CODE}, el provider añade region: ${env:AWS_REGION}, stage: dev e iam.role: ${env:LAMBDA_ROLE_ARN} para usar el rol existente del laboratorio, y se conservan las siete funciones (hello, getEvent, createEvent, listEvents, replaceEvent, updateEvent, deleteEvent) apuntando a dist/.... No toqué los handlers TypeScript del bloque 04 ni el cliente de mobile/. En Prepara guardé el perfil [academy] en ~/.aws/credentials y exporté AWS_REGION, STUDENT_CODE y LAMBDA_ROLE_ARN en la terminal.
+
+- Ruta o pantalla comprobada: Comprobé la identidad con aws sts get-caller-identity --profile academy (cuenta, UserId y Arn de STS). Después ejecuté npm run typecheck, npm run build, npx serverless package --stage dev --region "$AWS_REGION", npx serverless deploy --stage dev --region "$AWS_REGION" y npx serverless info --stage dev --region "$AWS_REGION". Con la URL base real hasta /dev, probé curl -i "$API_BASE/events" y npx serverless logs -f listEvents --stage dev --region "$AWS_REGION". En el cambio guiado pedí /events/EVT-101 y /events/NO-EXISTE y consulté npx serverless logs -f getEvent.
+
+- Estado y respuesta observados: package generó .serverless con el ZIP y la plantilla, y dentro del ZIP localicé dist/events/list.js y el resto de handlers. deploy terminó correctamente y info mostró URLs HTTPS reales para las siete funciones; copié la base hasta /dev sin añadir /events. curl -i "$API_BASE/events" devolvió 200 con las dos actuaciones, y en serverless logs -f listEvents apareció LIST eventos: GET. En el cambio guiado, EVT-101 → 200 y NO-EXISTE → 404, y en serverless logs -f getEvent se vieron ambos ids solicitados. La cuenta de STS coincidió con la esperada y el rol de ejecución fue el autorizado por el laboratorio, distinto del Arn de STS.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: tsc compila src/**/*.ts a dist/, y serverless package empaqueta ese dist/ junto con la plantilla de CloudFormation que describe API Gateway, las Lambdas y sus rutas. El Framework usa el perfil academy de ~/.aws/credentials para autenticarse, y provider.iam.role indica el rol de ejecución que asumirá Lambda (no el usuario de STS). deploy envía el paquete a S3 y aplica la plantilla vía CloudFormation, que crea o actualiza los recursos del servicio festival-control-api-<STUDENT_CODE> en la región autorizada. info devuelve el endpoint; al pedir /dev/events, API Gateway enruta a la Lambda listEvents, que ejecuta el handler de dist/events/list.js y devuelve el JSON del catálogo fijo. CloudWatch registra la ejecución, que se lee con serverless logs -f <función>.
+
+- Cambio guiado y resultado: Con el endpoint real pedí /dev/events/EVT-101 y /dev/events/NO-EXISTE. La primera respondió 200 con la ficha del evento; la segunda, 404 con el mensaje de «Evento no encontrado». En npx serverless logs -f getEvent --stage dev --region "$AWS_REGION" localicé ambos ids solicitados, lo que relaciona la petición HTTP con la ejecución cloud concreta de getEvent sin cambiar el catálogo ni las políticas IAM.
+
+- Error encontrado y cómo lo resolví: En el primer intento de deploy, serverless falló con AccessDenied en CloudFormation al intentar crear recursos. Revisé CloudFormation → Events y leí el primer recurso y la acción denegada; era un permiso del laboratorio que el rol de la sesión no incluía. No añadí políticas ni repetí el despliegue a ciegas: lo documenté y lo consulté con el profesor, que confirmó el ARN del rol de ejecución autorizado y los permisos del lab. Tras renovar las tres credenciales de la sesión (access key, secret key y session token) y volver a comprobar STS, el deploy terminó correctamente. También verifiqué que estaba en la misma terminal con AWS_REGION, STUDENT_CODE y LAMBDA_ROLE_ARN exportados, porque esas variables no pasan a terminales ya abiertas.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+![alt text](imagenes/08/image-1.png)
+![alt text](imagenes/08/image-2.png)
+![alt text](imagenes/08/image.png)
+![alt text](imagenes/08/image-3.png)
+
+- Limitaciones del ejercicio: Requiere laboratorio activo y permisos autorizados por el centro; no todos los cursos Academy permiten desplegar CloudFormation con iam:PassRole, S3, Lambda y API Gateway, y sin esos permisos el deploy falla aunque STS sea correcto. Las credenciales son temporales y caducan por jornada; hay que renovar las tres y repetir STS. El backend sigue siendo simulado: las escrituras no persisten y el catálogo es fijo, así que el despliegue demuestra el contrato cloud, no almacenamiento real. No se crea cuenta personal ni se añaden recursos ajenos. El cliente de mobile/ todavía apunta a localhost; conectarlo al endpoint HTTPS es el objetivo del bloque 09.
+
+
+
+# Bloque 09
+ 
+## Resultado
+- Qué añadí al proyecto: Solo cambié el valor de API_URL en mobile/src/api.ts, sustituyendo la base local http://localhost:3000/dev por la base HTTPS real obtenida de serverless info en el bloque 08 (https://<api-real>.execute-api.<región>.amazonaws.com/dev). No toqué el resto de api.ts (helpers request, isFestivalEvent, getEvents, createEvent, replaceEvent, updateEvent, deleteEvent), ni App.tsx, ni types.ts, ni el backend. Detuve serverless-offline y dejé la configuración final apuntando a cloud.
+
+- Ruta o pantalla comprobada: Con Offline detenido, verifiqué primero el endpoint con curl -i "$API_BASE/events" (200 con dos actuaciones y Access-Control-Allow-Origin). Después arranqué npm run web desde mobile, abrí F12 → Network y probé GET recargar y los cuatro botones (POST crear, PUT reemplazar EVT-101, PATCH cancelar EVT-101, DELETE EVT-102). En backend consulté npx serverless logs -f updateEvent --stage dev --region "$AWS_REGION" y npx serverless logs -f listEvents --stage dev --region "$AWS_REGION".
+
+- Estado y respuesta observados: En Network, todas las peticiones fueron a https://<api-real>.execute-api.<región>.amazonaws.com/dev/..., ninguna a localhost. GET /events → 200 con EVT-101 y EVT-102; POST /events → 201 con EVT-NEW; PUT /events/EVT-101 → 200 con operation: "REPLACED"; PATCH /events/EVT-101 → 200 con changes.status: "CANCELLED" y operation: "UPDATED"; DELETE /events/EVT-102 → 200 con operation: "DELETED". Los resultados JSON aparecieron en pantalla. Tras las escrituras, GET recargar conservó las dos actuaciones con status: "CONFIRMED". En logs -f updateEvent apareció PATCH evento: EVT-101 y en logs -f listEvents apareció LIST eventos: GET.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: El botón o useEffect dispara una función de api.ts (getEvents, createEvent, etc.), que llama a request(path, method, body). request construye la URL con API_URL + path; como API_URL ahora es la base HTTPS real, la petición sale del navegador hacia API Gateway del laboratorio. API Gateway enruta según método y ruta a la Lambda desplegada correspondiente (listEvents, createEvent, etc.), que ejecuta el handler de dist/events/*.js con el catálogo fijo. La respuesta JSON vuelve al navegador, request comprueba response.ok y getEvents valida la lista con isFestivalEvent. React actualiza events o result y la pantalla refleja los datos. CloudWatch registra la ejecución, que se lee con serverless logs -f <función>. El cliente no conoce credenciales AWS: la API de práctica es pública y las credenciales temporales solo se usan para administrar el despliegue desde el equipo.
+
+- Cambio guiado y resultado: Anoté la URL local de 07 (http://localhost:3000/dev, con Offline activo) y la base cloud real de este bloque (https://<api-real>.execute-api.<región>.amazonaws.com/dev, con Lambdas desplegadas). Conservé capturas de GET y PATCH cloud en Network y sus logs (LIST eventos: GET y PATCH evento: EVT-101). Explico que para volver a local bastaría cambiar API_URL a http://localhost:3000/dev y arrancar npm start en backend; para quedarme en cloud, se conserva la URL HTTPS y no hace falta arrancar Offline. Los métodos, rutas y campos del contrato no cambian entre ambos entornos. Dejé la configuración final apuntando a cloud.
+
+- Error encontrado y cómo lo resolví: En el primer intento, tras cambiar API_URL, Network seguía mostrando peticiones a localhost. El motivo fue que no había guardado api.ts y que la pestaña del navegador conservaba el bundle anterior de Metro. Guardé con Ctrl+S, recargué el navegador y verifiqué que la petición pasaba a https://<api-real>.... También comprobé que Offline estaba detenido para no confundir respuestas locales con cloud. En otra prueba, una escritura dio error de CORS porque había desplegado antes de guardar los headers del helper json() del bloque 04; revisé YAML y model.ts, redesplegué y repetí curl y Network hasta ver OPTIONS correcto y Access-Control-Allow-Origin también en respuestas de error.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+![alt text](imagenes/09/image-4.png)
+![alt text](imagenes/09/image-5.png)
+![alt text](imagenes/09/image-6.png)
+![alt text](imagenes/09/image-7.png)
+![alt text](imagenes/09/image-8.png)
+![alt text](imagenes/09/image-9.png)
+![alt text](imagenes/09/image-10.png)
+![alt text](imagenes/09/image-11.png)
+![alt text](imagenes/09/image-12.png)
+![alt text](imagenes/09/image-13.png)
+
+- Limitaciones del ejercicio: El backend sigue siendo simulado: el catálogo es fijo y las escrituras no persisten, así que tras DELETE la lista conserva EVT-102 y tras PATCH el GET devuelve CONFIRMED. No hay actualización optimista en el cliente para no fingir un guardado inexistente. La API de práctica es pública y sin autenticación; las credenciales temporales del laboratorio solo sirven para desplegar y consultar logs, nunca se incorporan al cliente. El laboratorio debe estar activo y con permisos suficientes; si el lab caduca o restringe logs, la evidencia cloud puede quedar incompleta y hay que documentarlo con el profesor. La vía principal es el navegador del aula con React Native Web; el teléfono con Expo Go es opcional y exigiría SDK compatible, URL LAN del PC y red permitida. El despliegue real y la ausencia de persistencia son el alcance de este tour; añadir almacenamiento queda fuera.
  
