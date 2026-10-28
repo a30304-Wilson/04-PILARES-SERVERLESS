@@ -1,0 +1,12 @@
+backend/node_modules/
+backend/dist/
+backend/.serverless/
+backend/.env
+backend/.env.*
+mobile/node_modules/
+mobile/dist/
+mobile/.expo/
+mobile/.env
+mobile/.env.*
+.aws/
+.DS_Store

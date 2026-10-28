@@ -1,0 +1,71 @@
+service: venue-control-api-${env:STUDENT_CODE}
+frameworkVersion: ~4.45.0
+ 
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION}
+  stage: dev
+  iam:
+    role: ${env:LAMBDA_ROLE_ARN}
+ 
+plugins:
+  - serverless-offline
+ 
+functions:
+  hello:
+    handler: dist/hello.handler
+    events:
+      - http:
+          path: hello
+          method: get
+          cors: true
+ 
+  getZone:
+    handler: dist/zones/get.handler
+    events:
+      - http:
+          path: zones/{id}
+          method: get
+          cors: true
+ 
+  createZone:
+    handler: dist/zones/create.handler
+    events:
+      - http:
+          path: zones
+          method: post
+          cors: true
+ 
+  listZones:
+    handler: dist/zones/list.handler
+    events:
+      - http:
+          path: zones
+          method: get
+          cors: true
+ 
+  replaceZone:
+    handler: dist/zones/replace.handler
+    events:
+      - http:
+          path: zones/{id}
+          method: put
+          cors: true
+ 
+  updateZone:
+    handler: dist/zones/update.handler
+    events:
+      - http:
+          path: zones/{id}
+          method: patch
+          cors: true
+ 
+  deleteZone:
+    handler: dist/zones/delete.handler
+    events:
+      - http:
+          path: zones/{id}
+          method: delete
+          cors: true
+ 
