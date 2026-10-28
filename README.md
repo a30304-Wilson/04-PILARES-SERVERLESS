@@ -145,3 +145,28 @@ Preflight para el navegador:
 
 - Limitaciones del ejercicio: os dos eventos son datos fijos; POST, PUT, PATCH y DELETE solo responden y no modifican catalog. Un GET posterior conserva la lista original. No hay almacenamiento ni persistencia real; el PATCH acepta únicamente status con valores CONFIRMED o CANCELLED, y PUT exige el objeto completo.
  
+
+
+# Bloque 05
+ 
+## Resultado
+- Qué añadí al proyecto: Creé la carpeta hermana mobile/ con su propio package.json (Expo SDK 54, React 19, React Native 0.81 y React Native Web, con versiones fijadas), app.json con Metro para web, tsconfig.json extendiendo expo/tsconfig.base, src/types.ts con el contrato FestivalEvent/EventInput, y App.tsx como interfaz raíz con dos tarjetas locales y un botón «Seleccionar EVT-101». También añadí al .gitignore las exclusiones de node_modules, dist, .expo, .serverless, .env y .aws. No toqué el backend ni introduje llamadas HTTP.
+
+- Ruta o pantalla comprobada: Abrí la app en el navegador del aula con npm run web desde mobile, en la URL que indicó Expo (por defecto http://localhost:8081). Verifiqué la pantalla «Festival Control → Programación» con las dos tarjetas (EVT-101 y EVT-102) y pulsé el botón de selección. Después recargué la página para contrastar el estado inicial.
+
+- Estado y respuesta observados: La pantalla mostró fondo negro, acentos rosas y las dos tarjetas con sus campos id · status, artist y space · time. Al pulsar «Seleccionar EVT-101», el texto inferior pasó de «Selección: ninguna» a «Selección: EVT-101». Al recargar el navegador, el texto volvió a «Selección: ninguna» y las dos tarjetas permanecieron. npm run typecheck terminó sin errores.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: App.tsx declara un array local tipado localEvents: FestivalEvent[] y lo asigna a events. El events.map(...) recorre cada elemento y dibuja una View con key={item.id}, mostrando Text con los campos del contrato. El estado de selección vive en useState<string | null>(null); el botón Pressable tiene onPress={() => setSelected('EVT-101')}, que cambia el estado y provoca un nuevo render. El texto inferior lee selected y muestra el id o «ninguna». Todo ocurre en el cliente: no hay fetch ni llamada a la API.
+
+- Cambio guiado y resultado: En App.tsx cambié setSelected('EVT-101') por setSelected('EVT-102') y el texto del botón a «Seleccionar EVT-102». Al guardar y pulsar, el texto inferior mostró «Selección: EVT-102». Después restauré EVT-101 y la etiqueta original para conservar el hito base. Las dos tarjetas permanecieron en todo momento y no se introdujo HTTP.
+
+- Error encontrado y cómo lo resolví: Al principio npm run web se quejó de que faltaban módulos porque no había ejecutado npm install en mobile. Lo resolví entrando en mobile con cd (comprobando con pwd que no estaba en backend ni en la raíz) y ejecutando npm install con el package.json completo ya guardado; después npm run typecheck y npm run web funcionaron. También verifiqué que el puerto 8081 estuviera libre; si estaba ocupado, acepté el puerto que propuso Expo sin cambiar API_URL, porque en este bloque todavía no hay API.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+![alt text](imagenes/05/image.png)
+
+- Limitaciones del ejercicio: Los datos son un array local tipado en App.tsx; no hay llamadas de red ni backend implicado, por lo que el backend de 04 puede estar detenido. La selección es estado de interfaz y no se conserva al recargar (no hay persistencia). La vía principal es el navegador del aula con React Native Web; el teléfono con Expo Go es opcional y exigiría SDK compatible, URL LAN del PC y red permitida. Las escrituras y el fetch real llegan en los bloques 06 y 07.
+ 
