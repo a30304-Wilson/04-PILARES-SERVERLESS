@@ -1,23 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import type { FestivalEvent } from './src/types';
- 
-const localEvents: FestivalEvent[] = [
-  { id: 'EVT-101', artist: 'Neon Waves', space: 'Main Stage', time: '22:30', status: 'CONFIRMED' },
-  { id: 'EVT-102', artist: 'Midnight Session', space: 'Club Stage', time: '23:45', status: 'CONFIRMED' }
-];
+import { getEvents } from './src/api';
  
 export default function App() {
-  const [selected, setSelected] = useState<string | null>(null);
-  const events = localEvents;
+  const [events, setEvents] = useState<FestivalEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  async function loadEvents() {
+    setLoading(true);
+    setError('');
+    try { setEvents(await getEvents()); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Error de red'); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void loadEvents(); }, []);
   return (
     <View style={styles.page}>
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>FESTIVAL CONTROL</Text>
         <Text style={styles.title}>Programación</Text>
-        <Text style={styles.text}>Datos locales · todavía sin llamadas HTTP</Text>
+        <Text style={styles.text}>Catálogo recibido por HTTP</Text>
         {events.map(item => (
           <View key={item.id} style={styles.card}>
             <Text style={styles.tag}>{item.id} · {item.status}</Text>
@@ -25,10 +30,10 @@ export default function App() {
             <Text style={styles.text}>{item.space} · {item.time}</Text>
           </View>
         ))}
-        <Pressable accessibilityRole="button" style={styles.button} onPress={() => setSelected('EVT-102')}>
-          <Text style={styles.buttonText}>Seleccionar EVT-102</Text>
+        <Pressable accessibilityRole="button" disabled={loading} style={styles.button} onPress={() => void loadEvents()}>
+          <Text style={styles.buttonText}>{loading ? 'Cargando…' : 'GET recargar'}</Text>
         </Pressable>
-        <Text accessibilityLiveRegion="polite" style={styles.text}>Selección: {selected ?? 'ninguna'}</Text>
+        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </ScrollView>
     </View>
   );

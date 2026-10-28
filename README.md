@@ -169,4 +169,29 @@ Preflight para el navegador:
 ![alt text](imagenes/05/image.png)
 
 - Limitaciones del ejercicio: Los datos son un array local tipado en App.tsx; no hay llamadas de red ni backend implicado, por lo que el backend de 04 puede estar detenido. La selección es estado de interfaz y no se conserva al recargar (no hay persistencia). La vía principal es el navegador del aula con React Native Web; el teléfono con Expo Go es opcional y exigiría SDK compatible, URL LAN del PC y red permitida. Las escrituras y el fetch real llegan en los bloques 06 y 07.
+
+
+
+# Bloque 06
  
+## Resultado
+- Qué añadí al proyecto: Creé mobile/src/api.ts con API_URL (http://localhost:3000/dev), una función request() que centraliza fetch, serialización y errores HTTP, un type guard isFestivalEvent() y getEvents(): Promise<FestivalEvent[]>. Sustituí mobile/App.tsx para que ya no use el array local: ahora importa getEvents, carga datos con useEffect al montar, gestiona estados loading y error, y añade un botón «GET recargar» que permite repetir la carga. No toqué el backend ni el catálogo del bloque 04.
+
+- Ruta o pantalla comprobada: Con el backend activo en http://localhost:3000/dev, verifiqué primero con curl -i http://localhost:3000/dev/events que devuelve 200 y dos actuaciones. Después abrí la app con npm run web desde mobile y comprobé en F12 → Network, filtrando events, la petición GET http://localhost:3000/dev/events. También probé el botón «GET recargar» con el backend detenido y con el backend activo de nuevo.
+
+- Estado y respuesta observados: En Network, GET /dev/events → 200 con las dos actuaciones (EVT-101 y EVT-102), y las dos tarjetas renderizadas correspondían a esos datos. Con el backend detenido, al pulsar «GET recargar» apareció en pantalla un error de red visible (accessibilityRole="alert"); al reactivar el backend y pulsar de nuevo, el error desapareció y reaparecieron las dos tarjetas. La ruta inexistente del cambio guiado devolvió una respuesta HTTP de error (404) en Network, no un fallo de red.
+ 
+## Comprensión
+- Recorrido del dato, explicado con mis palabras: Al montar la pantalla, useEffect llama a loadEvents(), que activa loading y limpia error. loadEvents() invoca getEvents() en api.ts, que construye la URL con API_URL + '/events' y hace fetch. La respuesta se convierte a JSON; request() comprueba response.ok y, si no es correcta, lanza un Error con el mensaje del cuerpo o el statusText. getEvents() valida con value.every(isFestivalEvent) que sea una lista de actuaciones y la devuelve. El componente guarda el resultado con setEvents(...) y React vuelve a renderizar las tarjetas. Si algo falla, catch asigna el mensaje a error; finally libera loading. El botón «GET recargar» repite el mismo flujo sin recargar la página.
+
+- Cambio guiado y resultado: Cambié temporalmente /events por /ruta-inexistente en getEvents(). Con el backend activo, al pulsar recargar apareció en Network una respuesta HTTP 404 (no un fallo de red) y en pantalla se mostró el error con el mensaje devuelto por la API. Restauré /events, guardé y comprobé que volvía el GET 200 con las dos tarjetas. Esto me permitió distinguir un error del servidor (respuesta HTTP recibida) de un fallo de red (servidor detenido, sin respuesta).
+
+- Error encontrado y cómo lo resolví: Al principio las tarjetas no aparecían y no veía ninguna petición en Network. Revisé API_URL y vi que debía terminar en /dev, sin /events ni barra final, porque el helper añade la ruta. También comprobé que el backend seguía arrancado en la terminal correcta y que cors: true y el helper json() del bloque 04 estaban presentes (incluidas las respuestas de error), porque sin ellos el navegador bloquea la lectura por CORS. Tras corregir API_URL y reiniciar el backend, el GET apareció en Network con 200 y las tarjetas se renderizaron.
+ 
+## Evidencias
+- Captura o transcripción breve, sin credenciales:
+
+![alt text](imagenes/06/image.png)
+![alt text](imagenes/06/image-1.png)
+
+- Limitaciones del ejercicio: La vía de aula es navegador y backend en el mismo PC; localhost sirve aquí, pero en un teléfono identificaría al teléfono, no al ordenador, y haría falta la URL LAN del PC y red permitida. El backend del bloque 04 es simulado: las escrituras no persisten, así que en este bloque solo se consume el GET y la lista sigue siendo el catálogo fijo. La app no incluye aún las cuatro escrituras ni el despliegue en AWS; eso corresponde a los bloques 07 y 08.
